@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth';
-import { validateFen } from '@/lib/chess-utils';
-import { PlusCircle, Info, Layout } from 'lucide-react';
+import { validateFen, normalizeMoveToSan } from '@/lib/chess-utils';
+import { PlusCircle, Info, Layout, CheckCircle, AlertCircle } from 'lucide-react';
 export function AddCardPage() {
   const navigate = useNavigate();
   const { userId } = useAuth();
@@ -18,15 +18,26 @@ export function AddCardPage() {
   const [move, setMove] = useState('');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isFenValid = useMemo(() => validateFen(fen), [fen]);
+  const sanMove = useMemo(() => {
+    if (!isFenValid || !move.trim()) return null;
+    return normalizeMoveToSan(fen, move.trim());
+  }, [fen, move, isFenValid]);
+  const isMoveValid = useMemo(() => !!sanMove, [sanMove]);
+  const canSubmit = isFenValid && isMoveValid && !isSubmitting;
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateFen(fen)) return toast.error("Invalid FEN string");
-    if (!move.trim()) return toast.error("Please specify the correct move");
+    if (!canSubmit) return;
     setIsSubmitting(true);
     try {
       await api('/api/cards', {
         method: 'POST',
-        body: JSON.stringify({ userId, fen, correctMove: move.trim(), note }),
+        body: JSON.stringify({ 
+          userId, 
+          fen, 
+          correctMove: sanMove, 
+          note 
+        }),
       });
       toast.success("Flashcard added to your bank!");
       navigate('/manage');
@@ -62,7 +73,22 @@ export function AddCardPage() {
             <CardContent>
               <form onSubmit={handleSave} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="fen" className="text-sm font-semibold">FEN Position</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="fen" className="text-sm font-semibold">FEN Position</Label>
+                    {fen && (
+                      <div className="flex items-center gap-1">
+                        {isFenValid ? (
+                          <span className="text-emerald-500 text-xs flex items-center gap-1 font-medium">
+                            <CheckCircle className="h-3 w-3" /> Valid Position
+                          </span>
+                        ) : (
+                          <span className="text-destructive text-xs flex items-center gap-1 font-medium">
+                            <AlertCircle className="h-3 w-3" /> Invalid FEN
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <Input
                     id="fen"
                     value={fen}
@@ -80,7 +106,22 @@ export function AddCardPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="move" className="text-sm font-semibold">Correct Move (SAN)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="move" className="text-sm font-semibold">Correct Move (SAN)</Label>
+                    {move && (
+                      <div className="flex items-center gap-1">
+                        {isMoveValid ? (
+                          <span className="text-emerald-500 text-xs flex items-center gap-1 font-medium">
+                            <CheckCircle className="h-3 w-3" /> Legal Move: {sanMove}
+                          </span>
+                        ) : (
+                          <span className="text-destructive text-xs flex items-center gap-1 font-medium">
+                            <AlertCircle className="h-3 w-3" /> Illegal or invalid move
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <Input
                     id="move"
                     value={move}
@@ -92,19 +133,25 @@ export function AddCardPage() {
                     autoCorrect="off"
                     spellCheck="false"
                   />
-                  <p className="text-2xs text-muted-foreground">Standard Algebraic Notation for the optimal response.</p>
+                  <p className="text-2xs text-muted-foreground">Type the correct move for the current position.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="note" className="text-sm font-semibold">Lesson Learned</Label>
-                  <Textarea
-                    id="note"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Why was this move better? (e.g. 'Pinned piece', 'King safety')"
-                    className="min-h-[120px] resize-none bg-secondary/30"
-                  />
+                  <div className="relative">
+                    <Textarea
+                      id="note"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="Why was this move better? (e.g. 'Pinned piece', 'King safety')"
+                      className="min-h-[120px] resize-none bg-secondary/30"
+                    />
+                  </div>
                 </div>
-                <Button type="submit" className="w-full btn-gradient h-12 text-base font-bold" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  className="w-full btn-gradient h-12 text-base font-bold" 
+                  disabled={!canSubmit}
+                >
                   {isSubmitting ? "Processing..." : "Create Flashcard"}
                 </Button>
               </form>
@@ -113,7 +160,7 @@ export function AddCardPage() {
           <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
             <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-2">Submission Tip</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Verify your FEN and move notation before saving. You can edit these later in the Card Manager.
+              Validation is real-time. If the FEN is valid, we automatically check if your move is legal in that position.
             </p>
           </div>
         </div>

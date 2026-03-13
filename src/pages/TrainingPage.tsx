@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, XCircle, Swords, ArrowRight, Keyboard, X, Home, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, Swords, ArrowRight, Keyboard, X, Home, Sparkles, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 export function TrainingPage() {
@@ -48,7 +48,7 @@ export function TrainingPage() {
     e?.preventDefault();
     const trimmedInput = userInput.trim();
     if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    const isCorrect = trimmedInput === currentCard.correctMove;
+    const isCorrect = trimmedInput.toLowerCase() === currentCard.correctMove.toLowerCase();
     if (isCorrect) {
       setStatus('correct');
       attemptMutation.mutate({ id: currentCard.id, correct: true });
@@ -56,6 +56,11 @@ export function TrainingPage() {
       setStatus('wrong');
       attemptMutation.mutate({ id: currentCard.id, correct: false });
     }
+  };
+  const handleRevealSolution = () => {
+    if (status !== 'waiting' || !currentCard) return;
+    setStatus('wrong');
+    attemptMutation.mutate({ id: currentCard.id, correct: false });
   };
   const nextPuzzle = () => {
     setUserInput('');
@@ -158,9 +163,23 @@ export function TrainingPage() {
                     spellCheck="false"
                   />
                   {status === 'waiting' && (
-                    <Button type="submit" className="w-full btn-gradient h-14 font-black tracking-wide text-base shadow-lg" disabled={!userInput.trim()}>
-                      Submit Move
-                    </Button>
+                    <div className="space-y-3">
+                      <Button 
+                        type="submit" 
+                        className="w-full btn-gradient h-14 font-black tracking-wide text-base shadow-lg" 
+                        disabled={!userInput.trim()}
+                      >
+                        Submit Move
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant="ghost" 
+                        onClick={handleRevealSolution}
+                        className="w-full text-xs text-muted-foreground font-bold hover:bg-destructive/5 hover:text-destructive transition-colors h-10"
+                      >
+                        <HelpCircle className="h-3.5 w-3.5 mr-2" /> I give up, reveal solution
+                      </Button>
+                    </div>
                   )}
                 </form>
                 <AnimatePresence mode="wait">
@@ -239,9 +258,6 @@ export function TrainingPage() {
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="w-full text-[10px] text-muted-foreground/60 font-black tracking-widest hover:text-foreground hover:bg-transparent" onClick={() => navigate('/')}>
-              <Home className="h-3.5 w-3.5 mr-2" /> EXIT TO DASHBOARD
-            </Button>
           </div>
         </div>
       </div>

@@ -7,7 +7,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Swords, Target, TrendingUp, BarChart3, Clock, ArrowRight } from 'lucide-react';
+import { PlusCircle, Swords, Target, TrendingUp, BarChart3, Clock, ArrowRight, BookOpen } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 export function HomePage() {
   const { userId } = useAuth();
@@ -94,25 +94,33 @@ export function HomePage() {
               <div className="grid gap-4">
                 {stats.recentActivity.map((card) => (
                   <Card key={card.id} className="hover:bg-accent/30 transition-all duration-200 border-none shadow-sm hover:shadow-soft group">
-                    <CardContent className="p-5 flex items-center justify-between">
-                      <div className="flex items-center gap-5">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center border-2 shadow-inner transition-colors ${
+                    <CardContent className="p-5 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-5 overflow-hidden">
+                        <div className={`h-12 w-12 rounded-2xl shrink-0 flex items-center justify-center border-2 shadow-inner transition-colors ${
                           card.stats.lastResult === 'correct' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600' :
                           card.stats.lastResult === 'wrong' ? 'border-destructive/20 bg-red-50 text-destructive' :
                           'border-muted bg-muted/30 text-muted-foreground'
                         }`}>
                           <Clock className="h-5 w-5" />
                         </div>
-                        <div className="space-y-1">
-                          <p className="font-mono font-black text-lg tracking-tight group-hover:text-primary transition-colors">{card.correctMove}</p>
-                          <p className="text-xs font-medium text-muted-foreground">
+                        <div className="space-y-1 overflow-hidden">
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono font-black text-lg tracking-tight group-hover:text-primary transition-colors">{card.correctMove}</p>
+                            {card.note && <BookOpen className="h-3 w-3 text-muted-foreground/40" />}
+                          </div>
+                          {card.note && (
+                            <p className="text-xs text-muted-foreground truncate italic">
+                              "{card.note}"
+                            </p>
+                          )}
+                          <p className="text-[10px] font-medium text-muted-foreground/60">
                             {card.stats.lastReviewedAt
-                              ? `Practiced ${formatDistanceToNow(card.stats.lastReviewedAt)} ago`
-                              : `Created ${formatDistanceToNow(card.createdAt)} ago`}
+                              ? `Reviewed ${formatDistanceToNow(card.stats.lastReviewedAt)} ago`
+                              : `Added ${formatDistanceToNow(card.createdAt)} ago`}
                           </p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" asChild className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" asChild className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link to="/manage"><ArrowRight className="h-4 w-4" /></Link>
                       </Button>
                     </CardContent>
