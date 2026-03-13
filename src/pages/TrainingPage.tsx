@@ -155,7 +155,7 @@ export function TrainingPage() {
                 </form>
                 <AnimatePresence mode="wait">
                   {status === 'correct' && (
-                    <motion.div 
+                    <motion.div
                       key="correct-feedback"
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
