@@ -1,6 +1,6 @@
 # Blunderbank
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Clipph/blunderbank)
 
 ## Overview
 
@@ -121,7 +121,7 @@ bun run build
 bunx wrangler deploy
 ```
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Clipph/blunderbank)
 
 **Post-Deployment**:
 - Access your app at `https://your-worker.your-subdomain.workers.dev`.
