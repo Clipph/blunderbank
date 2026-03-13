@@ -1,17 +1,15 @@
 import { Chess } from 'chess.js';
 export function validateFen(fen: string): boolean {
   try {
-    const chess = new Chess();
-    chess.load(fen);
-    return true;
+    const result = Chess.validateFen(fen);
+    return result.ok;
   } catch {
     return false;
   }
 }
 export function validateMove(fen: string, move: string | { from: string; to: string; promotion?: string }): { isValid: boolean, san?: string } {
   try {
-    const chess = new Chess();
-    chess.load(fen);
+    const chess = new Chess(fen);
     const result = chess.move(move);
     if (result) return { isValid: true, san: result.san };
     return { isValid: false };
@@ -25,9 +23,7 @@ export function validateMove(fen: string, move: string | { from: string; to: str
  */
 export function normalizeMoveToSan(fen: string, input: string): string | null {
   try {
-    const chess = new Chess();
-    chess.load(fen);
-    // Try to move as SAN first, then as LAN/Coordinates
+    const chess = new Chess(fen);
     const move = chess.move(input);
     return move ? move.san : null;
   } catch {
@@ -40,8 +36,7 @@ export function isMoveCorrect(fen: string, source: string, target: string, corre
 }
 export function getTurn(fen: string): 'w' | 'b' {
   try {
-    const chess = new Chess();
-    chess.load(fen);
+    const chess = new Chess(fen);
     return chess.turn();
   } catch {
     return 'w';
@@ -49,8 +44,7 @@ export function getTurn(fen: string): 'w' | 'b' {
 }
 export function getPossibleMoves(fen: string) {
   try {
-    const chess = new Chess();
-    chess.load(fen);
+    const chess = new Chess(fen);
     return chess.moves({ verbose: true });
   } catch {
     return [];
