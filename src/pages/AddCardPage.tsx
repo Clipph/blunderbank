@@ -26,14 +26,19 @@ export function AddCardPage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    addCard({
-      userId: 'local-user',
-      fen,
-      correctMove: sanMove!,
-      note
-    });
-    toast.success("Flashcard added to your bank!");
-    navigate('/manage');
+    try {
+      addCard({
+        userId: 'local-user',
+        fen: fen.trim(),
+        correctMove: sanMove!,
+        note: note.trim()
+      });
+      toast.success("Flashcard added to your bank!");
+      navigate('/manage');
+    } catch (error) {
+      toast.error("Failed to save flashcard");
+      console.error(error);
+    }
   };
   return (
     <AppLayout container className="bg-slate-50/30">
@@ -83,6 +88,8 @@ export function AddCardPage() {
                     onChange={(e) => setFen(e.target.value)}
                     placeholder="rnbqkbnr/pppppppp/..."
                     className="bg-secondary/50 font-mono text-sm"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                   <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
                     <Info className="h-3 w-3" />
@@ -112,6 +119,9 @@ export function AddCardPage() {
                     onChange={(e) => setMove(e.target.value)}
                     placeholder="e.g. Nf3, Bxe5, O-O"
                     className="font-mono text-lg h-12"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                 </div>
                 <div className="space-y-2">

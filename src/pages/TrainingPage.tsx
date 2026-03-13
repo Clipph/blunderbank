@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useNavigate } from 'react-router-dom';
 import { Chessboard } from 'react-chessboard';
+import { Chess } from 'chess.js';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { getTurn } from '@/lib/chess-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,18 @@ export function TrainingPage() {
     if (!currentCard) return 'w';
     return getTurn(currentCard.fen);
   }, [currentCard]);
+  const displayPosition = useMemo(() => {
+    if (!currentCard) return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    if (status === 'waiting') return currentCard.fen;
+    // Show the board after the correct move is applied
+    try {
+      const chess = new Chess(currentCard.fen);
+      chess.move(currentCard.correctMove);
+      return chess.fen();
+    } catch (e) {
+      return currentCard.fen;
+    }
+  }, [currentCard, status]);
   useEffect(() => {
     if (status === 'waiting' && inputRef.current) {
       const timer = setTimeout(() => {
@@ -38,7 +51,10 @@ export function TrainingPage() {
     e?.preventDefault();
     const trimmedInput = userInput.trim();
     if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    const isCorrect = trimmedInput === currentCard.correctMove;
+    // Use loose comparison for SAN but exact check for normalization if needed
+    // Typically users expect exact SAN or case-insensitive SAN
+    const isCorrect = trimmedInput.toLowerCase() === currentCard.correctMove.toLowerCase() || 
+                      trimmedInput === currentCard.correctMove;
     if (isCorrect) {
       setStatus('correct');
       recordAttempt(currentCard.id, true);
@@ -107,8 +123,8 @@ export function TrainingPage() {
           <div className="space-y-4">
             <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-[8px] md:border-[12px] border-slate-800 ring-1 ring-slate-700/50">
               <Chessboard
-                id={123} /* Fixed TS error: id must be number */
-                position={currentCard.fen}
+                id={123}
+                position={displayPosition}
                 arePiecesDraggable={false}
                 boardOrientation={turn === 'w' ? 'white' : 'black'}
               />
@@ -119,7 +135,9 @@ export function TrainingPage() {
                   "w-4 h-4 rounded-full border shadow-inner",
                   turn === 'w' ? 'bg-white' : 'bg-black border-slate-700'
                 )} />
-                <span className="text-sm font-bold">{turn === 'w' ? "White" : "Black"} to move</span>
+                <span className="text-sm font-bold">
+                  {status === 'waiting' ? (turn === 'w' ? "White to move" : "Black to move") : "Solution Displayed"}
+                </span>
               </div>
             </div>
           </div>
@@ -144,6 +162,9 @@ export function TrainingPage() {
                     disabled={status !== 'waiting'}
                     className="text-3xl font-mono text-center h-20 normal-case font-black shadow-sm bg-secondary/10 border-none"
                     autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                   {status === 'waiting' && (
                     <div className="space-y-3">

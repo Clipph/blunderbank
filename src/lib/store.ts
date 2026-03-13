@@ -59,12 +59,13 @@ export const useAppStore = create<AppState>()(
         cards: state.cards.map((c) => {
           if (c.id !== id) return c;
           const stats = { ...c.stats };
+          const now = Date.now();
           stats.timesReviewed += 1;
           if (correct) stats.timesCorrect += 1;
           else stats.timesWrong += 1;
-          stats.lastReviewedAt = Date.now();
+          stats.lastReviewedAt = now;
           stats.lastResult = correct ? 'correct' : 'wrong';
-          return { ...c, stats };
+          return { ...c, stats, updatedAt: now };
         })
       }))
     }),
