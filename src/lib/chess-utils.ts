@@ -1,8 +1,9 @@
 import { Chess } from 'chess.js';
 export function validateFen(fen: string): boolean {
   try {
-    const result = Chess.validateFen(fen);
-    return result.ok;
+    const chess = new Chess();
+    const result = chess.load(fen);
+    return result;
   } catch {
     return false;
   }

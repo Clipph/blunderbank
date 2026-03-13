@@ -35,7 +35,7 @@ export function TrainingPage() {
   const turn = useMemo(() => {
     if (!currentCard) return 'w';
     return getTurn(currentCard.fen);
-  }, [currentCard?.fen]);
+  }, [currentCard]);
   useEffect(() => {
     if (status === 'waiting' && inputRef.current) {
       const timer = setTimeout(() => {
@@ -113,12 +113,10 @@ export function TrainingPage() {
           <div className="space-y-4">
             <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-[12px] border-slate-800 ring-1 ring-slate-700/50">
               <Chessboard
-                id="training-board"
+                id={1}
                 position={currentCard.fen}
                 arePiecesDraggable={false}
                 boardOrientation={turn === 'w' ? 'white' : 'black'}
-                customDarkSquareStyle={{ backgroundColor: '#1e293b' }}
-                customLightSquareStyle={{ backgroundColor: '#475569' }}
               />
             </div>
             <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-xl border border-border/50 backdrop-blur-sm">
