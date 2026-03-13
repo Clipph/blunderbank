@@ -1,238 +1,117 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useAppStore } from '@/lib/store';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Chessboard } from 'react-chessboard';
-import { Chess } from 'chess.js';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { getTurn } from '@/lib/chess-utils';
+import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth';
+import { isMoveCorrect } from '@/lib/chess-utils';
+import type { FlashCard } from '@shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, XCircle, Swords, ArrowRight, Keyboard, X, Sparkles, HelpCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle2, XCircle, Swords, ArrowRight } from 'lucide-react';
+import { Chess } from 'chess.js';
 export function TrainingPage() {
-  const navigate = useNavigate();
-  const cards = useAppStore(s => s.cards);
-  const recordAttempt = useAppStore(s => s.recordAttempt);
+  const { userId } = useAuth();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [status, setStatus] = useState<'waiting' | 'correct' | 'wrong'>('waiting');
-  const [userInput, setUserInput] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const currentCard = cards[currentCardIndex] || null;
-  const progressValue = cards.length > 0 ? ((currentCardIndex + 1) / cards.length) * 100 : 0;
-  const turn = useMemo(() => {
-    if (!currentCard) return 'w';
-    return getTurn(currentCard.fen);
-  }, [currentCard]);
-  const displayPosition = useMemo(() => {
-    if (!currentCard) return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-    if (status === 'waiting') return currentCard.fen;
-    try {
-      const chess = new Chess(currentCard.fen);
-      chess.move(currentCard.correctMove);
-      return chess.fen();
-    } catch (e) {
-      return currentCard.fen;
-    }
-  }, [currentCard, status]);
-  useEffect(() => {
-    if (status === 'waiting' && inputRef.current) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [status, currentCardIndex]);
-  const handleSubmitMove = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const trimmedInput = userInput.trim();
-    if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    // Strict case-sensitive comparison for proper SAN notation
-    const isCorrect = trimmedInput === currentCard.correctMove;
-    if (isCorrect) {
+  const [key, setKey] = useState(0); // Force board reset
+  const { data: cards = [], isLoading } = useQuery({
+    queryKey: ['cards', userId],
+    queryFn: () => api<FlashCard[]>(`/api/users/${userId}/cards`),
+  });
+  const attemptMutation = useMutation({
+    mutationFn: ({ id, correct }: { id: string; correct: boolean }) => 
+      api(`/api/cards/${id}/attempt`, { method: 'POST', body: JSON.stringify({ correct }) }),
+  });
+  const currentCard = cards[currentCardIndex];
+  const onDrop = (source: string, target: string) => {
+    if (status !== 'waiting') return false;
+    const correct = isMoveCorrect(currentCard.fen, source, target, currentCard.correctMove);
+    if (correct) {
       setStatus('correct');
-      recordAttempt(currentCard.id, true);
+      attemptMutation.mutate({ id: currentCard.id, correct: true });
+      return true;
     } else {
       setStatus('wrong');
-      recordAttempt(currentCard.id, false);
+      attemptMutation.mutate({ id: currentCard.id, correct: false });
+      return false;
     }
-  };
-  const handleRevealSolution = () => {
-    if (status !== 'waiting' || !currentCard) return;
-    setStatus('wrong');
-    recordAttempt(currentCard.id, false);
   };
   const nextPuzzle = () => {
-    setUserInput('');
     setStatus('waiting');
-    if (cards.length > 1) {
-      let nextIndex = currentCardIndex;
-      while (nextIndex === currentCardIndex) {
-        nextIndex = Math.floor(Math.random() * cards.length);
-      }
-      setCurrentCardIndex(nextIndex);
-    } else {
-      setCurrentCardIndex(0);
-    }
+    setKey(k => k + 1);
+    setCurrentCardIndex(prev => (prev + 1) % cards.length);
   };
+  if (isLoading) return <div className="p-8 text-center">Loading puzzles...</div>;
   if (cards.length === 0) return (
     <AppLayout container>
-      <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
-        <div className="h-20 w-20 bg-primary/5 rounded-full flex items-center justify-center">
-          <Swords className="h-10 w-10 text-primary/40" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Empty Arsenal</h2>
-          <p className="text-muted-foreground max-w-sm mx-auto">
-            Your blunder bank is currently empty. Add some positions to begin your journey.
-          </p>
-        </div>
-        <Button onClick={() => navigate('/add')} size="lg" className="btn-gradient">
-          Add Flashcards
-        </Button>
+      <div className="text-center py-20">
+        <h2 className="text-2xl font-bold">No cards to train on!</h2>
+        <p className="text-muted-foreground mt-2">Go to "Add Card" to start building your bank.</p>
       </div>
     </AppLayout>
   );
-  if (!currentCard) return null;
   return (
     <AppLayout container>
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         <header className="flex items-center justify-between">
-          <div className="space-y-3">
-            <h1 className="text-2xl font-bold flex items-center gap-2 text-foreground">
-              <Swords className="h-6 w-6 text-primary" /> Training Session
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Swords className="h-6 w-6" /> Training Mode
             </h1>
-            <div className="flex items-center gap-4">
-              <Progress value={progressValue} className="w-48 h-2 bg-secondary" />
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
-                {currentCardIndex + 1} / {cards.length}
-              </span>
-            </div>
+            <p className="text-muted-foreground">Find the winning correction.</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="text-muted-foreground">
-            <X className="h-4 w-4 mr-2" /> End Session
-          </Button>
+          <div className="text-sm font-medium bg-muted px-3 py-1 rounded-full">
+            Puzzle {currentCardIndex + 1} / {cards.length}
+          </div>
         </header>
-        <div className="grid lg:grid-cols-[1fr_360px] gap-10 items-start">
-          <div className="space-y-4">
-            <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-[8px] md:border-[12px] border-slate-800 ring-1 ring-slate-700/50">
-              <Chessboard
-                id="training-board"
-                position={displayPosition}
-                arePiecesDraggable={false}
-                boardOrientation={turn === 'w' ? 'white' : 'black'}
-              />
-            </div>
-            <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-xl border border-border/50">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-4 h-4 rounded-full border shadow-inner",
-                  turn === 'w' ? 'bg-white' : 'bg-black border-slate-700'
-                )} />
-                <span className="text-sm font-bold">
-                  {status === 'waiting' ? (turn === 'w' ? "White to move" : "Black to move") : "Solution Displayed"}
-                </span>
-              </div>
-            </div>
+        <div className="grid md:grid-cols-[1fr_300px] gap-8">
+          <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-4 border-slate-800">
+            <Chessboard 
+              key={key}
+              position={currentCard.fen} 
+              onPieceDrop={onDrop}
+              boardOrientation={new Chess(currentCard.fen).turn() === 'w' ? 'white' : 'black'}
+              animationDuration={200}
+            />
           </div>
           <div className="space-y-6">
-            <Card className={cn(
-              "transition-all duration-500 border-2 overflow-hidden",
-              status === 'correct' ? "bg-emerald-50/30 border-emerald-500/30" :
-              status === 'wrong' ? "bg-red-50/30 border-red-500/30" : "bg-card border-border shadow-soft"
-            )}>
-              <CardHeader className="pb-3 border-b border-border/5">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/60 flex items-center gap-2">
-                  <Keyboard className="h-3.5 w-3.5" /> Correction Input
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-8 space-y-6">
-                <form onSubmit={handleSubmitMove} className="space-y-4">
-                  <Input
-                    ref={inputRef}
-                    placeholder="e.g. Bxe5"
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    disabled={status !== 'waiting'}
-                    className="text-3xl font-mono text-center h-20 normal-case font-black shadow-sm bg-secondary/10 border-none"
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck="false"
-                  />
-                  {status === 'waiting' && (
-                    <div className="space-y-3">
-                      <Button
-                        type="submit"
-                        className="w-full btn-gradient h-14 font-black text-base shadow-lg"
-                        disabled={!userInput.trim()}
-                      >
-                        Submit Move
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={handleRevealSolution}
-                        className="w-full text-xs text-muted-foreground font-bold hover:text-destructive h-10"
-                      >
-                        <HelpCircle className="h-3.5 w-3.5 mr-2" /> I give up
-                      </Button>
-                    </div>
-                  )}
-                </form>
-                <AnimatePresence mode="wait">
-                  {status === 'correct' && (
-                    <motion.div
-                      key={`correct-${currentCard.id}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-4"
-                    >
-                      <Alert className="bg-emerald-600 text-white border-none shadow-xl">
-                        <CheckCircle2 className="h-5 w-5 text-white" />
-                        <AlertTitle className="font-black text-white text-lg">Correct! <Sparkles className="h-4 w-4" /></AlertTitle>
-                        <AlertDescription className="text-emerald-50 font-medium">
-                          The correct move was <span className="font-mono font-black bg-white/20 px-1.5 py-0.5 rounded">{currentCard.correctMove}</span>
-                        </AlertDescription>
-                      </Alert>
-                      <div className="bg-white/80 dark:bg-slate-900/80 p-6 rounded-xl border border-emerald-100 shadow-sm">
-                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-3">Memory Marker</p>
-                        <p className="text-sm italic font-medium">"{currentCard.note || "No custom note saved."}"</p>
-                      </div>
-                      <Button onClick={nextPuzzle} className="w-full bg-slate-900 text-white h-14 text-lg font-black shadow-2xl">
-                        Continue Training <ArrowRight className="ml-2 h-5 w-5" />
-                      </Button>
-                    </motion.div>
-                  )}
-                  {status === 'wrong' && (
-                    <motion.div
-                      key={`wrong-${currentCard.id}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-4"
-                    >
-                      <Alert variant="destructive" className="border-none shadow-xl bg-red-600">
-                        <XCircle className="h-5 w-5 text-white" />
-                        <AlertTitle className="font-black text-white text-lg">Not quite</AlertTitle>
-                        <AlertDescription className="text-red-50 font-medium">
-                          The solution was <span className="font-mono font-black bg-white/20 px-1.5 py-0.5 rounded">{currentCard.correctMove}</span>
-                        </AlertDescription>
-                      </Alert>
-                      <div className="bg-white/80 dark:bg-slate-900/80 p-6 rounded-xl border border-red-100 shadow-sm">
-                        <p className="text-[10px] font-black text-red-700 uppercase tracking-widest mb-3">Logic Check</p>
-                        <p className="text-sm italic font-medium">"{currentCard.note || "Analyze why this move is correct."}"</p>
-                      </div>
-                      <Button onClick={nextPuzzle} className="w-full bg-slate-900 text-white h-14 text-lg font-black shadow-2xl">
-                        Next Position
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </CardContent>
-            </Card>
+            {status === 'correct' && (
+              <Alert className="bg-green-50 border-green-200 text-green-800 animate-in fade-in slide-in-from-top-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle>Brilliant!</AlertTitle>
+                <AlertDescription>That's the correct move. Your memory is sharp.</AlertDescription>
+              </Alert>
+            )}
+            {status === 'wrong' && (
+              <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>Not quite!</AlertTitle>
+                <AlertDescription>
+                  The correct move was <span className="font-bold underline">{currentCard.correctMove}</span>.
+                </AlertDescription>
+              </Alert>
+            )}
+            {(status === 'correct' || status === 'wrong') && (
+              <Card className="animate-in fade-in slide-in-from-bottom-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Mistake Analysis</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm leading-relaxed italic">"{currentCard.note || "No notes provided for this position."}"</p>
+                  <Button onClick={nextPuzzle} className="w-full btn-gradient group">
+                    Next Puzzle <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            {status === 'waiting' && (
+              <div className="p-6 rounded-xl border border-dashed text-center space-y-2">
+                <p className="text-sm font-medium">It's {new Chess(currentCard.fen).turn() === 'w' ? 'White' : 'Black'}'s turn</p>
+                <p className="text-xs text-muted-foreground">Drag and drop the correct piece.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

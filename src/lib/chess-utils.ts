@@ -1,48 +1,31 @@
 import { Chess } from 'chess.js';
 export function validateFen(fen: string): boolean {
   try {
-    const chess = new Chess();
-    // In chess.js v1.0.0-beta.6, load() returns void and throws on invalid FEN
-    // or returns void. We wrap in try-catch and return true if it doesn't throw.
-    chess.load(fen);
+    const chess = new Chess(fen);
     return true;
   } catch {
     return false;
   }
 }
-export function validateMove(fen: string, move: string | { from: string; to: string; promotion?: string }): { isValid: boolean, san?: string } {
+export function validateMove(fen: string, moveStr: string): { isValid: boolean, san?: string } {
   try {
     const chess = new Chess(fen);
-    const result = chess.move(move);
-    if (result) return { isValid: true, san: result.san };
+    const move = chess.move(moveStr);
+    if (move) return { isValid: true, san: move.san };
     return { isValid: false };
   } catch {
     return { isValid: false };
-  }
-}
-/**
- * Normalizes a move input (could be SAN or coordinates) into a standardized SAN string.
- * Returns null if the move is illegal in the given position.
- */
-export function normalizeMoveToSan(fen: string, input: string): string | null {
-  try {
-    const chess = new Chess(fen);
-    const move = chess.move(input);
-    return move ? move.san : null;
-  } catch {
-    return null;
   }
 }
 export function isMoveCorrect(fen: string, source: string, target: string, correctSan: string): boolean {
-  const result = validateMove(fen, { from: source, to: target, promotion: 'q' });
-  return result.isValid && result.san === correctSan;
-}
-export function getTurn(fen: string): 'w' | 'b' {
   try {
     const chess = new Chess(fen);
-    return chess.turn();
+    const move = chess.move({ from: source, to: target, promotion: 'q' });
+    if (!move) return false;
+    // Compare SAN or LAN if needed, but SAN is safest
+    return move.san === correctSan;
   } catch {
-    return 'w';
+    return false;
   }
 }
 export function getPossibleMoves(fen: string) {
