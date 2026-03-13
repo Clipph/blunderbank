@@ -5,7 +5,7 @@ import { Chessboard } from 'react-chessboard';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth';
-import { normalizeMoveToSan, getTurn } from '@/lib/chess-utils';
+import { getTurn } from '@/lib/chess-utils';
 import type { FlashCard } from '@shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,9 +38,11 @@ export function TrainingPage() {
   }, [status, currentCardIndex]);
   const handleSubmitMove = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!userInput.trim() || status !== 'waiting' || !currentCard) return;
-    const normalizedInput = normalizeMoveToSan(currentCard.fen, userInput.trim());
-    const isCorrect = normalizedInput === currentCard.correctMove;
+    const trimmedInput = userInput.trim();
+    if (!trimmedInput || status !== 'waiting' || !currentCard) return;
+    // Phase Change: Strict Case-Sensitive Validation
+    // Users requested strict matching to the stored SAN to ensure they learn notation correctly (e.g., Nf3 not nf3)
+    const isCorrect = trimmedInput === currentCard.correctMove;
     if (isCorrect) {
       setStatus('correct');
       attemptMutation.mutate({ id: currentCard.id, correct: true });
@@ -121,7 +123,7 @@ export function TrainingPage() {
           <div className="space-y-4">
             <Card className={cn(
               "transition-all duration-300 border-2",
-              status === 'correct' ? "bg-emerald-50/30 border-emerald-200" : 
+              status === 'correct' ? "bg-emerald-50/30 border-emerald-200" :
               status === 'wrong' ? "bg-red-50/30 border-red-200" : "bg-card border-border"
             )}>
               <CardHeader className="pb-3">
@@ -137,8 +139,12 @@ export function TrainingPage() {
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     disabled={status !== 'waiting'}
-                    className="text-xl font-mono text-center h-14 uppercase font-bold focus-visible:ring-primary shadow-sm"
+                    className="text-xl font-mono text-center h-14 normal-case font-bold focus-visible:ring-primary shadow-sm"
                     autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    inputMode="text"
                     autoFocus
                   />
                   {status === 'waiting' && (

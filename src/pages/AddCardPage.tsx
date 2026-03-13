@@ -35,7 +35,7 @@ export function AddCardPage() {
     try {
       await api('/api/cards', {
         method: 'POST',
-        body: JSON.stringify({ userId, fen, correctMove: move, note }),
+        body: JSON.stringify({ userId, fen, correctMove: move.trim(), note }),
       });
       toast.success("Flashcard added!");
       navigate('/manage');
@@ -64,6 +64,10 @@ export function AddCardPage() {
                   setFen(val);
                 }}
                 placeholder="Paste FEN here..."
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
               />
               <p className="text-2xs text-muted-foreground">Position before your blunder happened.</p>
             </div>
@@ -74,6 +78,12 @@ export function AddCardPage() {
                 value={move}
                 onChange={(e) => setMove(e.target.value)}
                 placeholder="e.g. Nf3, O-O, Bxe5"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                inputMode="text"
+                className="font-mono"
               />
               <p className="text-2xs text-muted-foreground">Play the move on the board to auto-fill.</p>
             </div>
