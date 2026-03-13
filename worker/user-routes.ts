@@ -19,7 +19,11 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       username,
       passwordHash,
     });
-    const token = await sign({ userId: user.id, username: user.username, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) }, JWT_SECRET);
+    const token = await sign({ 
+      userId: user.id, 
+      username: user.username, 
+      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) 
+    }, JWT_SECRET, "HS256");
     const { passwordHash: _, ...userNoPass } = user;
     return ok(c, { user: userNoPass, token });
   });
@@ -29,22 +33,27 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!user || !user.passwordHash) return bad(c, 'Invalid credentials');
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return bad(c, 'Invalid credentials');
-    const token = await sign({ userId: user.id, username: user.username, exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) }, JWT_SECRET);
+    const token = await sign({ 
+      userId: user.id, 
+      username: user.username, 
+      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) 
+    }, JWT_SECRET, "HS256");
     const { passwordHash: _, ...userNoPass } = user;
     return ok(c, { user: userNoPass, token });
   });
   // PROTECTED ROUTES MIDDLEWARE
-  app.use('/api/cards/*', jwt({ secret: JWT_SECRET }));
+  // Hono v4 requires explicit 'alg' for JWT middleware
+  app.use('/api/cards/*', jwt({ secret: JWT_SECRET, alg: "HS256" }));
   // FLASHCARDS (Derived from JWT)
   app.get('/api/cards', async (c) => {
-    const payload = c.get('jwtPayload');
+    const payload = c.get('jwtPayload') as { userId: string };
     const userId = payload.userId;
     const { items } = await FlashCardEntity.list(c.env, null, 1000);
     const filtered = items.filter(card => card.userId === userId);
     return ok(c, filtered);
   });
   app.post('/api/cards', async (c) => {
-    const payload = c.get('jwtPayload');
+    const payload = c.get('jwtPayload') as { userId: string };
     const userId = payload.userId;
     const body = await c.req.json();
     if (!body.fen || !body.correctMove) return bad(c, 'Missing required fields');
@@ -59,7 +68,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, await FlashCardEntity.create(c.env, card));
   });
   app.put('/api/cards/:id', async (c) => {
-    const payload = c.get('jwtPayload');
+    const payload = c.get('jwtPayload') as { userId: string };
     const userId = payload.userId;
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -75,7 +84,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, updated);
   });
   app.delete('/api/cards/:id', async (c) => {
-    const payload = c.get('jwtPayload');
+    const payload = c.get('jwtPayload') as { userId: string };
     const userId = payload.userId;
     const id = c.req.param('id');
     const entity = new FlashCardEntity(c.env, id);
@@ -85,7 +94,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, { deleted: await FlashCardEntity.delete(c.env, id) });
   });
   app.post('/api/cards/:id/attempt', async (c) => {
-    const payload = c.get('jwtPayload');
+    const payload = c.get('jwtPayload') as { userId: string };
     const userId = payload.userId;
     const id = c.req.param('id');
     const { correct } = await c.req.json();

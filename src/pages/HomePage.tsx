@@ -12,9 +12,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 export function HomePage() {
   const { userId } = useAuth();
+  // FIXED: Endpoint corrected to match authenticated pattern /api/cards
+  // The backend user-routes.ts provides /api/cards with JWT filtering
   const { data: cards = [], isLoading } = useQuery({
     queryKey: ['cards', userId],
-    queryFn: () => api<FlashCard[]>(`/api/users/${userId}/cards`),
+    queryFn: () => api<FlashCard[]>('/api/cards'),
     refetchOnWindowFocus: true,
   });
   const stats = React.useMemo(() => {
@@ -41,7 +43,15 @@ export function HomePage() {
       .slice(0, 5);
     return { total, reviewed, accuracy, accuracyColor, recentActivity };
   }, [cards]);
-  if (isLoading) return <div className="p-12 text-center animate-pulse text-muted-foreground font-medium">Loading your dashboard...</div>;
+  if (isLoading) {
+    return (
+      <AppLayout container>
+        <div className="p-12 text-center animate-pulse text-muted-foreground font-medium">
+          Loading your dashboard...
+        </div>
+      </AppLayout>
+    );
+  }
   return (
     <AppLayout container>
       <div className="space-y-12">
