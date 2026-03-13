@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth';
+import { cn } from '@/lib/utils';
 import { validateFen, validateMove, getTurn } from '@/lib/chess-utils';
 export function AddCardPage() {
   const navigate = useNavigate();
