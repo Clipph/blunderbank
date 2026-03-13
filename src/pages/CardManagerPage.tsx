@@ -19,9 +19,10 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Trash2, PlusCircle, Library, Target, Clock, Pencil } from 'lucide-react';
+import { Trash2, PlusCircle, Library, Target, Clock, Pencil, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { normalizeMoveToSan } from '@/lib/chess-utils';
 export function CardManagerPage() {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
@@ -60,13 +61,20 @@ export function CardManagerPage() {
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCard) return;
-    if (!editForm.correctMove.trim()) {
+    const trimmedMove = editForm.correctMove.trim();
+    if (!trimmedMove) {
       toast.error("Correct move is required");
+      return;
+    }
+    // Normalize and validate the move against the FEN before updating
+    const normalizedSan = normalizeMoveToSan(editingCard.fen, trimmedMove);
+    if (!normalizedSan) {
+      toast.error("Invalid or illegal move for this position");
       return;
     }
     updateMutation.mutate({
       id: editingCard.id,
-      correctMove: editForm.correctMove.trim(),
+      correctMove: normalizedSan,
       note: editForm.note,
     });
   };
@@ -208,6 +216,9 @@ export function CardManagerPage() {
                   autoCorrect="off"
                   spellCheck="false"
                 />
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> Note: Move must be legal for the saved FEN.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-note">Lesson Note</Label>
@@ -232,7 +243,7 @@ export function CardManagerPage() {
         </Dialog>
         {cards.length > 0 && (
           <div className="flex justify-center pt-4">
-            <Button asChild size="lg" className="px-12 rounded-full font-bold shadow-lg">
+            <Button asChild size="lg" className="px-12 rounded-full font-bold shadow-lg hover:scale-105 transition-transform">
               <Link to="/train">Practice These Positions</Link>
             </Button>
           </div>

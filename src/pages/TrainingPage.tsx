@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, XCircle, Swords, ArrowRight, Keyboard, X, Home, Sparkles, HelpCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Swords, ArrowRight, Keyboard, X, Sparkles, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 export function TrainingPage() {
@@ -48,7 +48,8 @@ export function TrainingPage() {
     e?.preventDefault();
     const trimmedInput = userInput.trim();
     if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    const isCorrect = trimmedInput.toLowerCase() === currentCard.correctMove.toLowerCase();
+    // Strict case-sensitive check for SAN notation (Nf3 != nf3)
+    const isCorrect = trimmedInput === currentCard.correctMove;
     if (isCorrect) {
       setStatus('correct');
       attemptMutation.mutate({ id: currentCard.id, correct: true });
@@ -164,16 +165,16 @@ export function TrainingPage() {
                   />
                   {status === 'waiting' && (
                     <div className="space-y-3">
-                      <Button 
-                        type="submit" 
-                        className="w-full btn-gradient h-14 font-black tracking-wide text-base shadow-lg" 
+                      <Button
+                        type="submit"
+                        className="w-full btn-gradient h-14 font-black tracking-wide text-base shadow-lg"
                         disabled={!userInput.trim()}
                       >
                         Submit Move
                       </Button>
-                      <Button 
+                      <Button
                         type="button"
-                        variant="ghost" 
+                        variant="ghost"
                         onClick={handleRevealSolution}
                         className="w-full text-xs text-muted-foreground font-bold hover:bg-destructive/5 hover:text-destructive transition-colors h-10"
                       >
