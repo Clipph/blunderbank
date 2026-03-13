@@ -14,39 +14,26 @@ import { HomePage } from '@/pages/HomePage';
 import { TrainingPage } from '@/pages/TrainingPage';
 import { AddCardPage } from '@/pages/AddCardPage';
 import { CardManagerPage } from '@/pages/CardManagerPage';
-import { LoginPage } from '@/pages/LoginPage';
-import { AccountPage } from '@/pages/AccountPage';
-import ProtectedRoute from '@/components/ProtectedRoute';
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
-    path: "/login",
-    element: <LoginPage />,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
     path: "/",
-    element: <ProtectedRoute><HomePage /></ProtectedRoute>,
+    element: <HomePage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
     path: "/train",
-    element: <ProtectedRoute><TrainingPage /></ProtectedRoute>,
+    element: <TrainingPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
     path: "/add",
-    element: <ProtectedRoute><AddCardPage /></ProtectedRoute>,
+    element: <AddCardPage />,
     errorElement: <RouteErrorBoundary />,
   },
   {
     path: "/manage",
-    element: <ProtectedRoute><CardManagerPage /></ProtectedRoute>,
-    errorElement: <RouteErrorBoundary />,
-  },
-  {
-    path: "/account",
-    element: <ProtectedRoute><AccountPage /></ProtectedRoute>,
+    element: <CardManagerPage />,
     errorElement: <RouteErrorBoundary />,
   },
 ]);

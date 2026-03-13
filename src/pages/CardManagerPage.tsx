@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
-import { api } from '@/lib/api-client';
-import { useAuth } from '@/lib/auth';
 import type { FlashCard } from '@shared/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,36 +22,11 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { normalizeMoveToSan } from '@/lib/chess-utils';
 export function CardManagerPage() {
-  const { userId } = useAuth();
-  const queryClient = useQueryClient();
+  const cards = useAppStore(s => s.cards);
+  const deleteCard = useAppStore(s => s.deleteCard);
+  const updateCard = useAppStore(s => s.updateCard);
   const [editingCard, setEditingCard] = useState<FlashCard | null>(null);
   const [editForm, setEditForm] = useState({ correctMove: '', note: '' });
-  const { data: cards = [], isLoading } = useQuery({
-    queryKey: ['cards', userId],
-    queryFn: () => api<FlashCard[]>('/api/cards'),
-  });
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api(`/api/cards/${id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cards', userId] });
-      toast.success("Card removed from your bank");
-    },
-  });
-  const updateMutation = useMutation({
-    mutationFn: (payload: { id: string; correctMove: string; note: string }) =>
-      api(`/api/cards/${payload.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ correctMove: payload.correctMove, note: payload.note }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cards', userId] });
-      toast.success("Card updated successfully");
-      setEditingCard(null);
-    },
-    onError: () => {
-      toast.error("Failed to update card");
-    }
-  });
   const handleEditClick = (card: FlashCard) => {
     setEditingCard(card);
     setEditForm({ correctMove: card.correctMove, note: card.note });
@@ -66,19 +39,24 @@ export function CardManagerPage() {
       toast.error("Correct move is required");
       return;
     }
-    // Normalize and validate the move against the FEN before updating
     const normalizedSan = normalizeMoveToSan(editingCard.fen, trimmedMove);
     if (!normalizedSan) {
       toast.error("Invalid or illegal move for this position");
       return;
     }
-    updateMutation.mutate({
-      id: editingCard.id,
+    updateCard(editingCard.id, {
       correctMove: normalizedSan,
       note: editForm.note,
     });
+    toast.success("Card updated successfully");
+    setEditingCard(null);
   };
-  if (isLoading) return <div className="p-12 text-center animate-pulse">Loading your repertoire...</div>;
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this card?")) {
+      deleteCard(id);
+      toast.success("Card removed from your bank");
+    }
+  };
   return (
     <AppLayout container>
       <div className="space-y-8">
@@ -112,11 +90,7 @@ export function CardManagerPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
-                      <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center">
-                        <Library className="h-6 w-6 text-muted-foreground opacity-50" />
-                      </div>
                       <p className="text-lg font-medium text-slate-900">No cards saved yet</p>
-                      <p className="text-sm text-muted-foreground mb-4">Your blunder bank is currently empty.</p>
                       <Button asChild variant="outline" size="sm">
                         <Link to="/add">Add Your First Card</Link>
                       </Button>
@@ -166,25 +140,17 @@ export function CardManagerPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-muted-foreground hover:text-primary transition-colors"
                           onClick={() => handleEditClick(card)}
                         >
                           <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-muted-foreground hover:text-destructive transition-colors"
-                          onClick={() => {
-                            if (window.confirm("Are you sure you want to delete this card?")) {
-                              deleteMutation.mutate(card.id);
-                            }
-                          }}
-                          disabled={deleteMutation.isPending}
+                          className="hover:text-destructive"
+                          onClick={() => handleDelete(card.id)}
                         >
                           <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
                         </Button>
                       </div>
                     </TableCell>
@@ -211,14 +177,7 @@ export function CardManagerPage() {
                   onChange={(e) => setEditForm({ ...editForm, correctMove: e.target.value })}
                   placeholder="e.g. Nf3"
                   className="font-mono"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck="false"
                 />
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" /> Note: Move must be legal for the saved FEN.
-                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-note">Lesson Note</Label>
@@ -234,20 +193,11 @@ export function CardManagerPage() {
                 <Button type="button" variant="outline" onClick={() => setEditingCard(null)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
-                </Button>
+                <Button type="submit">Save Changes</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
-        {cards.length > 0 && (
-          <div className="flex justify-center pt-4">
-            <Button asChild size="lg" className="px-12 rounded-full font-bold shadow-lg hover:scale-105 transition-transform">
-              <Link to="/train">Practice These Positions</Link>
-            </Button>
-          </div>
-        )}
       </div>
     </AppLayout>
   );
