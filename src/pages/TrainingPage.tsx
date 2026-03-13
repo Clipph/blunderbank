@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, XCircle, Swords, ArrowRight, Keyboard, X, Home } from 'lucide-react';
+import { CheckCircle2, XCircle, Swords, ArrowRight, Keyboard, X, Home, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 export function TrainingPage() {
   const { userId } = useAuth();
   const navigate = useNavigate();
@@ -40,8 +41,6 @@ export function TrainingPage() {
     e?.preventDefault();
     const trimmedInput = userInput.trim();
     if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    // Phase Change: Strict Case-Sensitive Validation
-    // Users requested strict matching to the stored SAN to ensure they learn notation correctly (e.g., Nf3 not nf3)
     const isCorrect = trimmedInput === currentCard.correctMove;
     if (isCorrect) {
       setStatus('correct');
@@ -85,7 +84,7 @@ export function TrainingPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <header className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-foreground">
               <Swords className="h-5 w-5 text-primary" /> Training Session
             </h1>
             <div className="flex items-center gap-4">
@@ -101,8 +100,9 @@ export function TrainingPage() {
         </header>
         <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
           <div className="space-y-4">
-            <div className="aspect-square w-full shadow-xl rounded-xl overflow-hidden bg-slate-900 border-8 border-slate-800 ring-1 ring-slate-700">
+            <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-8 border-slate-800 ring-1 ring-slate-700">
               <Chessboard
+                id={`train-board-${currentCard.id}`}
                 position={currentCard.fen}
                 arePiecesDraggable={false}
                 boardOrientation={turn === 'w' ? 'white' : 'black'}
@@ -122,9 +122,9 @@ export function TrainingPage() {
           </div>
           <div className="space-y-4">
             <Card className={cn(
-              "transition-all duration-300 border-2",
-              status === 'correct' ? "bg-emerald-50/30 border-emerald-200" :
-              status === 'wrong' ? "bg-red-50/30 border-red-200" : "bg-card border-border"
+              "transition-all duration-300 border-2 overflow-hidden",
+              status === 'correct' ? "bg-emerald-50/40 border-emerald-300 shadow-lg shadow-emerald-100/50" :
+              status === 'wrong' ? "bg-red-50/40 border-red-300 shadow-lg shadow-red-100/50" : "bg-card border-border shadow-soft"
             )}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -153,49 +153,63 @@ export function TrainingPage() {
                     </Button>
                   )}
                 </form>
-                {status === 'correct' && (
-                  <div className="space-y-4 animate-in fade-in zoom-in-95 slide-in-from-top-2">
-                    <Alert className="bg-emerald-500 text-white border-none shadow-lg shadow-emerald-200">
-                      <CheckCircle2 className="h-4 w-4 text-white" />
-                      <AlertTitle className="font-bold">Excellent!</AlertTitle>
-                      <AlertDescription>
-                        Correct move: <span className="font-mono font-black">{currentCard.correctMove}</span>
-                      </AlertDescription>
-                    </Alert>
-                    <div className="bg-white/50 p-4 rounded-xl border border-emerald-100 shadow-sm">
-                      <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-2">Lesson Learned</p>
-                      <p className="text-sm leading-relaxed text-slate-700 italic">
-                        "{currentCard.note || "You didn't leave a note for this blunder yet."}"
-                      </p>
-                    </div>
-                    <Button onClick={nextPuzzle} className="w-full bg-slate-900 hover:bg-slate-800 text-white group h-12">
-                      Next Position <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </div>
-                )}
-                {status === 'wrong' && (
-                  <div className="space-y-4 animate-in fade-in zoom-in-95 slide-in-from-top-2">
-                    <Alert variant="destructive" className="border-none shadow-lg shadow-red-200">
-                      <XCircle className="h-4 w-4" />
-                      <AlertTitle className="font-bold">Not quite!</AlertTitle>
-                      <AlertDescription>
-                        The move was <span className="font-mono font-black underline">{currentCard.correctMove}</span>
-                      </AlertDescription>
-                    </Alert>
-                    <div className="bg-white/50 p-4 rounded-xl border border-red-100 shadow-sm">
-                      <p className="text-[10px] font-black text-red-700 uppercase tracking-wider mb-2">The Correction</p>
-                      <p className="text-sm leading-relaxed text-slate-700 italic">
-                        "{currentCard.note || "Check the engine to understand why this was correct."}"
-                      </p>
-                    </div>
-                    <Button onClick={nextPuzzle} className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12">
-                      Try Another Position
-                    </Button>
-                  </div>
-                )}
+                <AnimatePresence mode="wait">
+                  {status === 'correct' && (
+                    <motion.div 
+                      key="correct-feedback"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className="space-y-4"
+                    >
+                      <Alert className="bg-emerald-500 text-white border-none shadow-lg">
+                        <CheckCircle2 className="h-4 w-4 text-white" />
+                        <AlertTitle className="font-bold flex items-center gap-2">
+                          Excellent! <Sparkles className="h-3 w-3 animate-pulse" />
+                        </AlertTitle>
+                        <AlertDescription>
+                          Correct move: <span className="font-mono font-black">{currentCard.correctMove}</span>
+                        </AlertDescription>
+                      </Alert>
+                      <div className="bg-white/70 p-4 rounded-xl border border-emerald-100 shadow-sm">
+                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-2">Lesson Learned</p>
+                        <p className="text-sm leading-relaxed text-slate-700 italic">
+                          "{currentCard.note || "You didn't leave a note for this blunder yet."}"
+                        </p>
+                      </div>
+                      <Button onClick={nextPuzzle} className="w-full bg-slate-900 hover:bg-slate-800 text-white group h-12 shadow-lg">
+                        Next Position <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </motion.div>
+                  )}
+                  {status === 'wrong' && (
+                    <motion.div
+                      key="wrong-feedback"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className="space-y-4"
+                    >
+                      <Alert variant="destructive" className="border-none shadow-lg">
+                        <XCircle className="h-4 w-4" />
+                        <AlertTitle className="font-bold">Not quite!</AlertTitle>
+                        <AlertDescription>
+                          The move was <span className="font-mono font-black underline">{currentCard.correctMove}</span>
+                        </AlertDescription>
+                      </Alert>
+                      <div className="bg-white/70 p-4 rounded-xl border border-red-100 shadow-sm">
+                        <p className="text-[10px] font-black text-red-700 uppercase tracking-wider mb-2">The Correction</p>
+                        <p className="text-sm leading-relaxed text-slate-700 italic">
+                          "{currentCard.note || "Check the engine to understand why this was correct."}"
+                        </p>
+                      </div>
+                      <Button onClick={nextPuzzle} className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 shadow-lg">
+                        Try Another Position
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </CardContent>
             </Card>
-            <div className="bg-secondary/20 p-6 rounded-2xl border text-center space-y-4">
+            <div className="bg-secondary/20 p-6 rounded-2xl border border-border/50 text-center space-y-4 shadow-sm">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Lifetime Progress</p>
               <div className="flex justify-around items-end">
                 <div className="space-y-1">
@@ -206,14 +220,14 @@ export function TrainingPage() {
                   </p>
                   <p className="text-[10px] text-muted-foreground font-semibold">ACCURACY</p>
                 </div>
-                <div className="h-8 w-px bg-border" />
+                <div className="h-8 w-px bg-border/50" />
                 <div className="space-y-1">
                   <p className="text-2xl font-black text-slate-900">{currentCard.stats.timesCorrect}</p>
                   <p className="text-[10px] text-muted-foreground font-semibold">SOLVED</p>
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground hover:text-foreground" onClick={() => navigate('/')}>
               <Home className="h-3 w-3 mr-2" /> Return to Dashboard
             </Button>
           </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api-client';
@@ -8,12 +8,25 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, PlusCircle, ExternalLink, Library, Target, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Trash2, PlusCircle, Library, Target, Clock, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 export function CardManagerPage() {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
+  const [editingCard, setEditingCard] = useState<FlashCard | null>(null);
+  const [editForm, setEditForm] = useState({ correctMove: '', note: '' });
   const { data: cards = [], isLoading } = useQuery({
     queryKey: ['cards', userId],
     queryFn: () => api<FlashCard[]>(`/api/users/${userId}/cards`),
@@ -25,6 +38,38 @@ export function CardManagerPage() {
       toast.success("Card removed from your bank");
     },
   });
+  const updateMutation = useMutation({
+    mutationFn: (payload: { id: string; correctMove: string; note: string }) =>
+      api(`/api/cards/${payload.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ correctMove: payload.correctMove, note: payload.note }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cards', userId] });
+      toast.success("Card updated successfully");
+      setEditingCard(null);
+    },
+    onError: () => {
+      toast.error("Failed to update card");
+    }
+  });
+  const handleEditClick = (card: FlashCard) => {
+    setEditingCard(card);
+    setEditForm({ correctMove: card.correctMove, note: card.note });
+  };
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCard) return;
+    if (!editForm.correctMove.trim()) {
+      toast.error("Correct move is required");
+      return;
+    }
+    updateMutation.mutate({
+      id: editingCard.id,
+      correctMove: editForm.correctMove.trim(),
+      note: editForm.note,
+    });
+  };
   if (isLoading) return <div className="p-12 text-center animate-pulse">Loading your repertoire...</div>;
   return (
     <AppLayout container>
@@ -103,13 +148,22 @@ export function CardManagerPage() {
                     <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Clock className="h-3 w-3" />
-                        {card.stats.lastReviewedAt 
+                        {card.stats.lastReviewedAt
                           ? formatDistanceToNow(card.stats.lastReviewedAt) + " ago"
                           : "Never"}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-primary transition-colors"
+                          onClick={() => handleEditClick(card)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -132,6 +186,50 @@ export function CardManagerPage() {
             </TableBody>
           </Table>
         </div>
+        <Dialog open={!!editingCard} onOpenChange={(open) => !open && setEditingCard(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Flashcard</DialogTitle>
+              <DialogDescription>
+                Update the correct move or your personal notes for this position.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-move">Correct Move (SAN)</Label>
+                <Input
+                  id="edit-move"
+                  value={editForm.correctMove}
+                  onChange={(e) => setEditForm({ ...editForm, correctMove: e.target.value })}
+                  placeholder="e.g. Nf3"
+                  className="font-mono"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-note">Lesson Note</Label>
+                <Textarea
+                  id="edit-note"
+                  value={editForm.note}
+                  onChange={(e) => setEditForm({ ...editForm, note: e.target.value })}
+                  placeholder="Why is this move better?"
+                  className="h-32"
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditingCard(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
         {cards.length > 0 && (
           <div className="flex justify-center pt-4">
             <Button asChild size="lg" className="px-12 rounded-full font-bold shadow-lg">

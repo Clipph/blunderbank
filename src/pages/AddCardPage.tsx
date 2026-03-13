@@ -30,7 +30,7 @@ export function AddCardPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateFen(fen)) return toast.error("Invalid FEN string");
-    if (!move) return toast.error("Please specify the correct move");
+    if (!move.trim()) return toast.error("Please specify the correct move");
     setIsSubmitting(true);
     try {
       await api('/api/cards', {
@@ -103,23 +103,28 @@ export function AddCardPage() {
           </form>
         </div>
         <div className="space-y-4">
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-muted/50 py-3">
+          <Card className="overflow-hidden shadow-soft">
+            <CardHeader className="bg-muted/50 py-3 border-b">
               <CardTitle className="text-sm font-medium">Interactive Preview</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="aspect-square w-full max-w-[500px] mx-auto">
+              <div className="aspect-square w-full max-w-[500px] mx-auto bg-slate-900">
                 <Chessboard
+                  id="add-preview-board"
                   position={validateFen(fen) ? fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}
                   onPieceDrop={onDrop}
                   boardOrientation={turn === 'w' ? 'white' : 'black'}
+                  animationDuration={200}
                 />
               </div>
             </CardContent>
           </Card>
-          <p className="text-xs text-center text-muted-foreground">
-            Current turn: {turn === 'w' ? 'White' : 'Black'}
-          </p>
+          <div className="flex items-center justify-center gap-2 py-2">
+            <div className={cn("w-3 h-3 rounded-full border", turn === 'w' ? 'bg-white' : 'bg-black')} />
+            <span className="text-xs font-medium text-muted-foreground">
+              Turn: {turn === 'w' ? 'White' : 'Black'}
+            </span>
+          </div>
         </div>
       </div>
     </AppLayout>
