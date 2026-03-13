@@ -16,8 +16,8 @@ const SEED_CARDS: FlashCard[] = [
     fen: 'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3',
     correctMove: 'Bb5',
     note: 'The Ruy Lopez: Developing the bishop and putting pressure on the knight defending e5.',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1714560000000,
+    updatedAt: 1714560000000,
     stats: { timesReviewed: 0, timesCorrect: 0, timesWrong: 0 }
   },
   {
@@ -26,15 +26,15 @@ const SEED_CARDS: FlashCard[] = [
     fen: 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2',
     correctMove: 'Nf3',
     note: 'Sicilian Defense: White prepares to challenge the center with d4.',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1714560000000,
+    updatedAt: 1714560000000,
     stats: { timesReviewed: 0, timesCorrect: 0, timesWrong: 0 }
   }
 ];
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      cards: SEED_CARDS,
+      cards: [], // Initialize empty, hydration will fill this or we seed if empty
       addCard: (cardData) => set((state) => ({
         cards: [
           ...state.cards,
@@ -72,6 +72,12 @@ export const useAppStore = create<AppState>()(
     {
       name: 'blunderbank-storage',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        // Seed if store is empty after rehydration
+        if (state && state.cards.length === 0) {
+          state.cards = SEED_CARDS;
+        }
+      },
     }
   )
 );
