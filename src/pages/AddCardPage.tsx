@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chessboard } from 'react-chessboard';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -10,8 +10,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth';
-import { validateFen, validateMove } from '@/lib/chess-utils';
-import { Chess } from 'chess.js';
+import { validateFen, validateMove, getTurn } from '@/lib/chess-utils';
 export function AddCardPage() {
   const navigate = useNavigate();
   const { userId } = useAuth();
@@ -19,10 +18,11 @@ export function AddCardPage() {
   const [move, setMove] = useState('');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const turn = useMemo(() => getTurn(fen), [fen]);
   const onDrop = (source: string, target: string) => {
-    const { isValid, san } = validateMove(fen, { from: source, to: target, promotion: 'q' });
-    if (isValid && san) {
-      setMove(san);
+    const result = validateMove(fen, { from: source, to: target, promotion: 'q' });
+    if (result.isValid && result.san) {
+      setMove(result.san);
       return true;
     }
     return false;
@@ -56,30 +56,33 @@ export function AddCardPage() {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fen">FEN Position</Label>
-              <Input 
-                id="fen" 
-                value={fen} 
-                onChange={(e) => setFen(e.target.value)} 
+              <Input
+                id="fen"
+                value={fen}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFen(val);
+                }}
                 placeholder="Paste FEN here..."
               />
               <p className="text-2xs text-muted-foreground">Position before your blunder happened.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="move">Correct Move (SAN)</Label>
-              <Input 
-                id="move" 
-                value={move} 
-                onChange={(e) => setMove(e.target.value)} 
+              <Input
+                id="move"
+                value={move}
+                onChange={(e) => setMove(e.target.value)}
                 placeholder="e.g. Nf3, O-O, Bxe5"
               />
               <p className="text-2xs text-muted-foreground">Play the move on the board to auto-fill.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="note">Lesson Learned</Label>
-              <Textarea 
-                id="note" 
-                value={note} 
-                onChange={(e) => setNote(e.target.value)} 
+              <Textarea
+                id="note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
                 placeholder="Why was this move better? What did you miss?"
                 className="h-32"
               />
@@ -96,16 +99,16 @@ export function AddCardPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="aspect-square w-full max-w-[500px] mx-auto">
-                <Chessboard 
-                  position={fen} 
+                <Chessboard
+                  position={validateFen(fen) ? fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}
                   onPieceDrop={onDrop}
-                  boardOrientation={new Chess(fen).turn() === 'w' ? 'white' : 'black'}
+                  boardOrientation={turn === 'w' ? 'white' : 'black'}
                 />
               </div>
             </CardContent>
           </Card>
           <p className="text-xs text-center text-muted-foreground">
-            Current turn: {new Chess(fen).turn() === 'w' ? 'White' : 'Black'}
+            Current turn: {turn === 'w' ? 'White' : 'Black'}
           </p>
         </div>
       </div>
