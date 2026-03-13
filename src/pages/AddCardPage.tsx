@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { validateFen, normalizeMoveToSan } from '@/lib/chess-utils';
 import { PlusCircle, Info, Layout, CheckCircle, AlertCircle } from 'lucide-react';
 export function AddCardPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { userId } = useAuth();
   const [fen, setFen] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [move, setMove] = useState('');
@@ -32,13 +34,15 @@ export function AddCardPage() {
     try {
       await api('/api/cards', {
         method: 'POST',
-        body: JSON.stringify({ 
-          userId, 
-          fen, 
-          correctMove: sanMove, 
-          note 
+        body: JSON.stringify({
+          userId,
+          fen,
+          correctMove: sanMove,
+          note
         }),
       });
+      // Invalidate query to ensure the newly added card is visible in the library
+      await queryClient.invalidateQueries({ queryKey: ['cards', userId] });
       toast.success("Flashcard added to your bank!");
       navigate('/manage');
     } catch (err) {
@@ -147,9 +151,9 @@ export function AddCardPage() {
                     />
                   </div>
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full btn-gradient h-12 text-base font-bold" 
+                <Button
+                  type="submit"
+                  className="w-full btn-gradient h-12 text-base font-bold"
                   disabled={!canSubmit}
                 >
                   {isSubmitting ? "Processing..." : "Create Flashcard"}

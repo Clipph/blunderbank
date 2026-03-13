@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Chessboard } from 'react-chessboard';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export function TrainingPage() {
   const { userId } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [status, setStatus] = useState<'waiting' | 'correct' | 'wrong'>('waiting');
   const [userInput, setUserInput] = useState('');
@@ -29,6 +30,9 @@ export function TrainingPage() {
   const attemptMutation = useMutation({
     mutationFn: ({ id, correct }: { id: string; correct: boolean }) =>
       api(`/api/cards/${id}/attempt`, { method: 'POST', body: JSON.stringify({ correct }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cards', userId] });
+    }
   });
   const currentCard = cards[currentCardIndex] || null;
   const progressValue = cards.length > 0 ? ((currentCardIndex + 1) / cards.length) * 100 : 0;
@@ -48,7 +52,6 @@ export function TrainingPage() {
     e?.preventDefault();
     const trimmedInput = userInput.trim();
     if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    // Strict case-sensitive check for SAN notation (Nf3 != nf3)
     const isCorrect = trimmedInput === currentCard.correctMove;
     if (isCorrect) {
       setStatus('correct');
@@ -85,7 +88,7 @@ export function TrainingPage() {
         </div>
         <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Empty Arsenal</h2>
-          <p className="text-muted-foreground max-w-sm mx-auto">
+          <p className="text-muted-foreground max-sm:px-4 max-w-sm mx-auto">
             Your blunder bank is currently empty. Add some positions to begin your journey to mastery.
           </p>
         </div>
@@ -117,9 +120,9 @@ export function TrainingPage() {
         </header>
         <div className="grid lg:grid-cols-[1fr_360px] gap-10 items-start">
           <div className="space-y-4">
-            <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-[12px] border-slate-800 ring-1 ring-slate-700/50">
+            <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-[8px] md:border-[12px] border-slate-800 ring-1 ring-slate-700/50">
               <Chessboard
-                id={1}
+                id="training-board"
                 position={currentCard.fen}
                 arePiecesDraggable={false}
                 boardOrientation={turn === 'w' ? 'white' : 'black'}
