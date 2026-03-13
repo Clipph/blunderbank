@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
-import { validateFen, validateMove, getTurn } from '@/lib/chess-utils';
+import { validateFen, getTurn } from '@/lib/chess-utils';
 export function AddCardPage() {
   const navigate = useNavigate();
   const { userId } = useAuth();
@@ -20,14 +20,6 @@ export function AddCardPage() {
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const turn = useMemo(() => getTurn(fen), [fen]);
-  const onDrop = (source: string, target: string) => {
-    const result = validateMove(fen, { from: source, to: target, promotion: 'q' });
-    if (result.isValid && result.san) {
-      setMove(result.san);
-      return true;
-    }
-    return false;
-  };
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateFen(fen)) return toast.error("Invalid FEN string");
@@ -86,7 +78,7 @@ export function AddCardPage() {
                 inputMode="text"
                 className="font-mono"
               />
-              <p className="text-2xs text-muted-foreground">Play the move on the board to auto-fill.</p>
+              <p className="text-2xs text-muted-foreground">Type the correct move manually for better retention.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="note">Lesson Learned</Label>
@@ -106,14 +98,14 @@ export function AddCardPage() {
         <div className="space-y-4">
           <Card className="overflow-hidden shadow-soft">
             <CardHeader className="bg-muted/50 py-3 border-b">
-              <CardTitle className="text-sm font-medium">Interactive Preview</CardTitle>
+              <CardTitle className="text-sm font-medium">Position Preview</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="aspect-square w-full max-w-[500px] mx-auto bg-slate-900">
                 <Chessboard
                   id="add-preview-board"
                   position={validateFen(fen) ? fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}
-                  onPieceDrop={onDrop}
+                  arePiecesDraggable={false}
                   boardOrientation={turn === 'w' ? 'white' : 'black'}
                   animationDuration={200}
                 />
