@@ -157,6 +157,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       stats.lastResult = correct ? 'correct' : 'wrong';
       return { ...s, stats };
     });
-    return ok(c, updated);
+    return ok(c, updated || state);
   });
 }

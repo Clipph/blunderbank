@@ -30,7 +30,7 @@ export function CardManagerPage() {
   const [editForm, setEditForm] = useState({ correctMove: '', note: '' });
   const { data: cards = [], isLoading } = useQuery({
     queryKey: ['cards', userId],
-    queryFn: () => api<FlashCard[]>(`/api/users/${userId}/cards`),
+    queryFn: () => api<FlashCard[]>('/api/cards'),
   });
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api(`/api/cards/${id}`, { method: 'DELETE' }),

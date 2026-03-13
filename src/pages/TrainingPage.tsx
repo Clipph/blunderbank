@@ -24,14 +24,14 @@ export function TrainingPage() {
   const [userInput, setUserInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: cards = [], isLoading } = useQuery({
-    queryKey: ['cards'],
+    queryKey: ['cards', userId],
     queryFn: () => api<FlashCard[]>('/api/cards'),
   });
   const attemptMutation = useMutation({
     mutationFn: ({ id, correct }: { id: string; correct: boolean }) =>
       api(`/api/cards/${id}/attempt`, { method: 'POST', body: JSON.stringify({ correct }) }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['cards', userId] });
     }
   });
   const currentCard = cards[currentCardIndex] || null;
@@ -52,7 +52,7 @@ export function TrainingPage() {
     e?.preventDefault();
     const trimmedInput = userInput.trim();
     if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    const isCorrect = trimmedInput.toLowerCase() === currentCard.correctMove.toLowerCase();
+    const isCorrect = trimmedInput === currentCard.correctMove;
     if (isCorrect) {
       setStatus('correct');
       attemptMutation.mutate({ id: currentCard.id, correct: true });
@@ -122,7 +122,7 @@ export function TrainingPage() {
           <div className="space-y-4">
             <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-[8px] md:border-[12px] border-slate-800 ring-1 ring-slate-700/50">
               <Chessboard
-                id={1}
+                id="training-board"
                 position={currentCard.fen}
                 arePiecesDraggable={false}
                 boardOrientation={turn === 'w' ? 'white' : 'black'}
