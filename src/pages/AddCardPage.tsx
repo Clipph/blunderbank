@@ -87,8 +87,9 @@ export function AddCardPage() {
                     value={fen}
                     onChange={(e) => setFen(e.target.value)}
                     placeholder="rnbqkbnr/pppppppp/..."
-                    className="bg-secondary/50 font-mono text-sm"
+                    className="bg-secondary/50 font-mono text-sm focus-visible:ring-primary"
                     autoCorrect="off"
+                    autoCapitalize="none"
                     spellCheck="false"
                   />
                   <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
@@ -118,7 +119,7 @@ export function AddCardPage() {
                     value={move}
                     onChange={(e) => setMove(e.target.value)}
                     placeholder="e.g. Nf3, Bxe5, O-O"
-                    className="font-mono text-lg h-12"
+                    className="font-mono text-lg h-12 focus-visible:ring-primary"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck="false"
@@ -131,12 +132,12 @@ export function AddCardPage() {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Why was this move better?"
-                    className="min-h-[120px] resize-none bg-secondary/30"
+                    className="min-h-[120px] resize-none bg-secondary/30 focus-visible:ring-primary"
                   />
                 </div>
                 <Button
                   type="submit"
-                  className="w-full btn-gradient h-12 text-base font-bold"
+                  className="w-full btn-gradient h-12 text-base font-bold shadow-lg"
                   disabled={!canSubmit}
                 >
                   Create Flashcard

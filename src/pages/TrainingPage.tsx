@@ -30,7 +30,6 @@ export function TrainingPage() {
   const displayPosition = useMemo(() => {
     if (!currentCard) return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     if (status === 'waiting') return currentCard.fen;
-    // Show the board after the correct move is applied
     try {
       const chess = new Chess(currentCard.fen);
       chess.move(currentCard.correctMove);
@@ -51,10 +50,8 @@ export function TrainingPage() {
     e?.preventDefault();
     const trimmedInput = userInput.trim();
     if (!trimmedInput || status !== 'waiting' || !currentCard) return;
-    // Use loose comparison for SAN but exact check for normalization if needed
-    // Typically users expect exact SAN or case-insensitive SAN
-    const isCorrect = trimmedInput.toLowerCase() === currentCard.correctMove.toLowerCase() || 
-                      trimmedInput === currentCard.correctMove;
+    // Strict case-sensitive comparison for proper SAN notation
+    const isCorrect = trimmedInput === currentCard.correctMove;
     if (isCorrect) {
       setStatus('correct');
       recordAttempt(currentCard.id, true);
@@ -123,7 +120,7 @@ export function TrainingPage() {
           <div className="space-y-4">
             <div className="aspect-square w-full shadow-2xl rounded-xl overflow-hidden bg-slate-900 border-[8px] md:border-[12px] border-slate-800 ring-1 ring-slate-700/50">
               <Chessboard
-                id={123}
+                id="training-board"
                 position={displayPosition}
                 arePiecesDraggable={false}
                 boardOrientation={turn === 'w' ? 'white' : 'black'}
