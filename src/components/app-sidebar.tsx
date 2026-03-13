@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutDashboard, Swords, Library, PlusCircle, LogOut, User } from "lucide-react";
+import { LayoutDashboard, Swords, Library, PlusCircle, LogOut, User, Settings } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ export function AppSidebar(): JSX.Element {
     { title: "Train", icon: Swords, path: "/train" },
     { title: "Manage Cards", icon: Library, path: "/manage" },
     { title: "Add Flashcard", icon: PlusCircle, path: "/add" },
+    { title: "Account Settings", icon: Settings, path: "/account" },
   ];
   const handleLogout = () => {
     logoutAction();
@@ -59,7 +60,7 @@ export function AppSidebar(): JSX.Element {
           {user && (
             <SidebarMenuItem>
               <div className="flex items-center gap-3 px-3 py-2 mb-2 bg-muted/40 rounded-lg">
-                <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600">
+                <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 shrink-0">
                   <User className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col overflow-hidden">

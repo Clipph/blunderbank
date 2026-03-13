@@ -5,7 +5,7 @@ export class UserEntity extends IndexedEntity<User> {
   static readonly entityName = "user";
   static readonly indexName = "users";
   static readonly initialState: User = { id: "", username: "" };
-  static seedData = MOCK_USERS.map(u => ({ ...u, username: u.name.toLowerCase().replace(/\s+/g, '_') }));
+  static seedData = MOCK_USERS;
   static async findByUsername(env: any, username: string): Promise<User | null> {
     const { items } = await this.list(env, null, 1000);
     return items.find(u => u.username === username) || null;

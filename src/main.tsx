@@ -5,7 +5,6 @@ import { createRoot } from 'react-dom/client'
 import {
   createBrowserRouter,
   RouterProvider,
-  Navigate,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -16,13 +15,9 @@ import { TrainingPage } from '@/pages/TrainingPage';
 import { AddCardPage } from '@/pages/AddCardPage';
 import { CardManagerPage } from '@/pages/CardManagerPage';
 import { LoginPage } from '@/pages/LoginPage';
-import { useAuthStore } from '@/lib/auth';
+import { AccountPage } from '@/pages/AccountPage';
+import ProtectedRoute from '@/components/ProtectedRoute';
 const queryClient = new QueryClient();
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore(s => s.token);
-  if (!token) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -47,6 +42,11 @@ const router = createBrowserRouter([
   {
     path: "/manage",
     element: <ProtectedRoute><CardManagerPage /></ProtectedRoute>,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/account",
+    element: <ProtectedRoute><AccountPage /></ProtectedRoute>,
     errorElement: <RouteErrorBoundary />,
   },
 ]);
