@@ -8,8 +8,12 @@ interface AuthState {
 }
 export const useAuthStore = create<AuthState>((set) => ({
   user: (() => {
-    const stored = localStorage.getItem('bb_user');
-    return stored ? JSON.parse(stored) : null;
+    try {
+      const stored = localStorage.getItem('bb_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
   })(),
   token: localStorage.getItem('bb_token'),
   login: (user: User, token: string) => {

@@ -13,19 +13,23 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       console.log('SIGNUP start:', { username });
       if (!username || !password) return bad(c, 'Username and password required');
       const existing = await UserEntity.findByUsername(c.env, username);
-      if (existing) return bad(c, 'Username already exists');
+      console.log('SIGNUP existing user:', existing ? { id: existing.id, username: existing.username } : null);
+      if (existing) return bad(c, 'Username taken');
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(password, salt);
+      console.log('SIGNUP after hash:', { username });
       const user = await UserEntity.create(c.env, {
         id: crypto.randomUUID(),
         username,
         passwordHash,
       });
+      console.log('SIGNUP created user:', { id: user.id, username: user.username });
       const token = await sign({
         userId: user.id,
         username: user.username,
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7)
       }, JWT_SECRET, "HS256");
+      console.log('SIGNUP token length:', token.length > 0);
       const { passwordHash: _, ...userNoPass } = user;
       return ok(c, { user: userNoPass, token });
     } catch (err) {
@@ -36,15 +40,20 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.post('/api/auth/login', async (c) => {
     try {
       const { username, password } = await c.req.json();
+      console.log('LOGIN start:', { username });
       const user = await UserEntity.findByUsername(c.env, username);
-      if (!user || !user.passwordHash) return bad(c, 'Invalid credentials');
+      console.log('LOGIN found user:', !!user);
+      if (!user) return bad(c, 'Username not found');
+      if (!user.passwordHash) return bad(c, 'Account configuration error');
       const valid = await bcrypt.compare(password, user.passwordHash);
-      if (!valid) return bad(c, 'Invalid credentials');
+      console.log('LOGIN hash compare:', valid);
+      if (!valid) return bad(c, 'Wrong password');
       const token = await sign({
         userId: user.id,
         username: user.username,
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7)
       }, JWT_SECRET, "HS256");
+      console.log('LOGIN token length:', token.length > 0);
       const { passwordHash: _, ...userNoPass } = user;
       return ok(c, { user: userNoPass, token });
     } catch (err) {
@@ -82,8 +91,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const valid = await bcrypt.compare(oldPassword, user.passwordHash);
     if (!valid) return bad(c, 'Incorrect current password');
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(newPassword, salt);
-    await entity.mutate(s => ({ ...s, passwordHash }));
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+    await entity.mutate(s => ({ ...s, passwordHash: newPasswordHash }));
     return ok(c, { message: 'Password updated' });
   });
   app.delete('/api/auth/account', async (c) => {
@@ -110,6 +119,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.post('/api/cards', async (c) => {
     const payload = c.get('jwtPayload') as { userId: string };
     const body = await c.req.json();
+    if (!body.fen || !body.correctMove) return bad(c, 'FEN and correctMove required');
+    
+    // Check for duplicate FEN for this user
+    const { items: userCards } = await FlashCardEntity.list(c.env, null, 1000);
+    const duplicate = userCards.filter(card => card.userId === payload.userId).find(card => card.fen === body.fen);
+    if (duplicate) return bad(c, 'FEN already exists for this user');
+    
     const card = {
       ...FlashCardEntity.initialState,
       ...body,
@@ -149,7 +165,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!state.id) return notFound(c);
     if (state.userId !== payload.userId) return bad(c, 'Unauthorized');
     const updated = await entity.mutate(s => {
-      const stats = { ...s.stats };
+      const stats = { ...s.stats, ...FlashCardEntity.initialState.stats };
       stats.timesReviewed += 1;
       if (correct) stats.timesCorrect += 1;
       else stats.timesWrong += 1;
