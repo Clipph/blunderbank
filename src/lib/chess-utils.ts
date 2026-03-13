@@ -2,8 +2,10 @@ import { Chess } from 'chess.js';
 export function validateFen(fen: string): boolean {
   try {
     const chess = new Chess();
-    const result = chess.load(fen);
-    return result;
+    // In chess.js v1.0.0-beta.6, load() returns void and throws on invalid FEN
+    // or returns void. We wrap in try-catch and return true if it doesn't throw.
+    chess.load(fen);
+    return true;
   } catch {
     return false;
   }

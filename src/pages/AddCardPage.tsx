@@ -69,6 +69,9 @@ export function AddCardPage() {
                     onChange={(e) => setFen(e.target.value)}
                     placeholder="rnbqkbnr/pppppppp/..."
                     autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                     className="bg-secondary/50 font-mono text-sm"
                   />
                   <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
@@ -85,6 +88,9 @@ export function AddCardPage() {
                     placeholder="e.g. Nf3, Bxe5, O-O"
                     className="font-mono text-lg h-12"
                     autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                   <p className="text-2xs text-muted-foreground">Standard Algebraic Notation for the optimal response.</p>
                 </div>
