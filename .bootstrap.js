@@ -79,7 +79,8 @@ function updateWranglerJsonc() {
 function runSetupCommands() {
     const commands = [
     "bun add chess.js@^1.0.0-beta.6",
-    "bun add react-chessboard@^1.0.15"
+    "bun add react-chessboard@^1.0.15",
+    "bun install bcryptjs @types/bcryptjs"
 ];
     
     if (commands.length === 0) {
