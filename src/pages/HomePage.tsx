@@ -10,8 +10,14 @@ import { Link } from 'react-router-dom';
 import { PlusCircle, Swords, Target, TrendingUp, BarChart3, Clock, ArrowRight, BookOpen } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 export function HomePage() {
   const { userId } = useAuth();
+  
+  useEffect(() => {
+    console.log('HomePage mounted, userId:', userId);
+  }, [userId]);
+  
   // FIXED: Endpoint corrected to match authenticated pattern /api/cards
   // The backend user-routes.ts provides /api/cards with JWT filtering
   const { data: cards = [], isLoading } = useQuery({
@@ -19,6 +25,7 @@ export function HomePage() {
     queryFn: () => api<FlashCard[]>('/api/cards'),
     refetchOnWindowFocus: true,
   });
+
   const stats = React.useMemo(() => {
     if (!cards || cards.length === 0) {
       return { total: 0, reviewed: 0, accuracy: 0, accuracyColor: 'text-muted-foreground', recentActivity: [] };

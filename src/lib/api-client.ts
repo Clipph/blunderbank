@@ -8,8 +8,10 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  console.log(`API call to ${path} with token: ${token ? token.slice(0,10)+'...' : 'NO'}`);
   const res = await fetch(path, { ...init, headers });
   if (res.status === 401) {
+    console.log('API 401 detected, clearing session and redirecting');
     localStorage.removeItem('bb_token');
     localStorage.removeItem('bb_user');
     window.location.href = '/login';

@@ -29,6 +29,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         username: user.username,
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7)
       }, JWT_SECRET, "HS256");
+      console.log(`Signed JWT for ${user.username} (${user.id}): ${token ? token.slice(0,20)+'...' : 'EMPTY'}`);
       console.log('SIGNUP token length:', token.length > 0);
       const { passwordHash: _, ...userNoPass } = user;
       return ok(c, { user: userNoPass, token });
@@ -53,6 +54,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         username: user.username,
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7)
       }, JWT_SECRET, "HS256");
+      console.log(`Signed JWT for ${user.username} (${user.id}): ${token ? token.slice(0,20)+'...' : 'EMPTY'}`);
       console.log('LOGIN token length:', token.length > 0);
       const { passwordHash: _, ...userNoPass } = user;
       return ok(c, { user: userNoPass, token });
@@ -63,11 +65,18 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   });
   // PROTECTED ROUTES MIDDLEWARE
   // FIXED: Explicitly set 'alg' as required by newer Hono JWT versions
-  app.use('/api/*', (c, next) => {
-    if (c.req.path.startsWith('/api/auth/signup') || c.req.path.startsWith('/api/auth/login')) {
+  app.use('/api/*', async (c, next) => {
+    if (c.req.path === '/api/auth/signup' || c.req.path === '/api/auth/login') {
       return next();
     }
-    return jwt({ secret: JWT_SECRET, alg: "HS256" })(c, next);
+    const authHeader = c.req.header('Authorization');
+    console.log(`Protected API: ${c.req.path}, authHeader: ${authHeader ? authHeader.slice(0,20)+'...' : 'MISSING'}`);
+    try {
+      return jwt({ secret: JWT_SECRET, alg: "HS256" })(c, next);
+    } catch(err) {
+      console.error(`JWT verify FAILED for ${c.req.path}:`, (err as Error)?.message ?? String(err));
+      return c.json({error: 'Unauthorized'}, 401);
+    }
   });
   // ACCOUNT MANAGEMENT
   app.put('/api/auth/account/username', async (c) => {
@@ -112,6 +121,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // FLASHCARDS
   app.get('/api/cards', async (c) => {
     const payload = c.get('jwtPayload') as { userId: string };
+    console.log(`Cards list for userId: ${payload.userId}`);
     const { items } = await FlashCardEntity.list(c.env, null, 1000);
     const filtered = items.filter(card => card.userId === payload.userId);
     return ok(c, filtered);
@@ -173,6 +183,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       stats.lastResult = correct ? 'correct' : 'wrong';
       return { ...s, stats };
     });
-    return ok(c, updated || state);
+    const finalState = updated || state;
+    return ok(c, finalState);
   });
 }

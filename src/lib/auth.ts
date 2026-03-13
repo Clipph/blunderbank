@@ -17,6 +17,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   })(),
   token: localStorage.getItem('bb_token'),
   login: (user: User, token: string) => {
+    console.log('Zustand login: user=', user?.username, 'tokenPrefix=', token?.slice(0,10));
     localStorage.setItem('bb_user', JSON.stringify(user));
     localStorage.setItem('bb_token', token);
     set({ user, token });

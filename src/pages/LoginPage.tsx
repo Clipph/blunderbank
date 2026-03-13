@@ -31,6 +31,7 @@ export function LoginPage() {
         method: 'POST',
         body: JSON.stringify({ username: formData.username, password: formData.password })
       });
+      console.log('Auth API response:', {user: data.user?.username, tokenPrefix: data.token?.slice(0,10)} );
       loginAction(data.user, data.token);
       toast.success(type === 'login' ? "Welcome back!" : "Account created successfully!");
       navigate('/');
