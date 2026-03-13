@@ -5,7 +5,12 @@ export interface ApiResponse<T = unknown> {
 }
 export interface User {
   id: string;
-  name: string;
+  username: string;
+  passwordHash?: string;
+}
+export interface AuthResponse {
+  user: User;
+  token: string;
 }
 export interface Chat {
   id: string;

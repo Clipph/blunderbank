@@ -1,23 +1,33 @@
 import { create } from 'zustand';
-import { v4 as uuidv4 } from 'uuid';
+import type { User } from '@shared/types';
 interface AuthState {
-  userId: string;
-  setUserId: (id: string) => void;
+  user: User | null;
+  token: string | null;
+  login: (user: User, token: string) => void;
+  logout: () => void;
 }
 export const useAuthStore = create<AuthState>((set) => ({
-  userId: (() => {
-    const stored = localStorage.getItem('bb_user_id');
-    if (stored) return stored;
-    const newId = uuidv4();
-    localStorage.setItem('bb_user_id', newId);
-    return newId;
+  user: (() => {
+    const stored = localStorage.getItem('bb_user');
+    return stored ? JSON.parse(stored) : null;
   })(),
-  setUserId: (id: string) => {
-    localStorage.setItem('bb_user_id', id);
-    set({ userId: id });
+  token: localStorage.getItem('bb_token'),
+  login: (user: User, token: string) => {
+    localStorage.setItem('bb_user', JSON.stringify(user));
+    localStorage.setItem('bb_token', token);
+    set({ user, token });
+  },
+  logout: () => {
+    localStorage.removeItem('bb_user');
+    localStorage.removeItem('bb_token');
+    set({ user: null, token: null });
   },
 }));
 export function useAuth() {
-  const userId = useAuthStore(s => s.userId);
-  return { userId };
+  const user = useAuthStore(s => s.user);
+  const token = useAuthStore(s => s.token);
+  const logout = useAuthStore(s => s.logout);
+  const userId = user?.id || '';
+  const isAuthenticated = !!token;
+  return { user, userId, token, isAuthenticated, logout };
 }
