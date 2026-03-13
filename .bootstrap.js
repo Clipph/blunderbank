@@ -77,7 +77,10 @@ function updateWranglerJsonc() {
 }
 
 function runSetupCommands() {
-    const commands = [];
+    const commands = [
+    "bun add chess.js@^1.0.0-beta.6",
+    "bun add react-chessboard@^1.0.15"
+];
     
     if (commands.length === 0) {
         console.log('⊘ No setup commands to run');
